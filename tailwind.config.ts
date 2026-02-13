@@ -12,6 +12,10 @@ export default {
         "2xl": "1400px",
       },
     },
+    fontFamily: {
+      sans: ['DM Sans', 'sans-serif'],
+      display: ['Space Grotesk', 'sans-serif'],
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -46,6 +50,10 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        hero: {
+          DEFAULT: "hsl(var(--hero-bg))",
+          foreground: "hsl(var(--hero-foreground))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
