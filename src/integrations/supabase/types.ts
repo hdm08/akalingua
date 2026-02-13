@@ -14,16 +14,204 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      direct_requests: {
+        Row: {
+          budget: number | null
+          created_at: string
+          id: string
+          language: string
+          lesson_type: string
+          message: string | null
+          status: string
+          student_id: string
+          teacher_id: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          id?: string
+          language: string
+          lesson_type?: string
+          message?: string | null
+          status?: string
+          student_id: string
+          teacher_id: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          id?: string
+          language?: string
+          lesson_type?: string
+          message?: string | null
+          status?: string
+          student_id?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
+      lesson_requests: {
+        Row: {
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          lesson_type: string
+          preferred_schedule: string | null
+          status: string
+          student_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          language: string
+          lesson_type?: string
+          preferred_schedule?: string | null
+          status?: string
+          student_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          lesson_type?: string
+          preferred_schedule?: string | null
+          status?: string
+          student_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teacher_profiles: {
+        Row: {
+          availability: string | null
+          bio: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          display_name: string
+          experience_years: number | null
+          hourly_rate: number | null
+          id: string
+          languages: string[] | null
+          rating: number | null
+          review_count: number | null
+          teaching_style: string | null
+          updated_at: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          availability?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          display_name?: string
+          experience_years?: number | null
+          hourly_rate?: number | null
+          id?: string
+          languages?: string[] | null
+          rating?: number | null
+          review_count?: number | null
+          teaching_style?: string | null
+          updated_at?: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          availability?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          display_name?: string
+          experience_years?: number | null
+          hourly_rate?: number | null
+          id?: string
+          languages?: string[] | null
+          rating?: number | null
+          review_count?: number | null
+          teaching_style?: string | null
+          updated_at?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +338,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "teacher"],
+    },
   },
 } as const

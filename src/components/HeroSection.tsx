@@ -1,6 +1,10 @@
 import { CheckCircle, Search, Megaphone, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const HeroSection = () => {
+  const { user, role } = useAuth();
+
   return (
     <section className="bg-hero text-hero-foreground pt-32 pb-20 lg:pb-28">
       <div className="container mx-auto px-6">
@@ -53,9 +57,9 @@ const HeroSection = () => {
                   <p className="text-xs text-muted-foreground mt-3">
                     <span className="font-semibold text-foreground">Best for:</span> Specific language needs, repeat sessions, preferred teaching style
                   </p>
-                  <button className="mt-4 w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                  <Link to="/find-teacher" className="mt-4 w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
                     Search Directory <ArrowRight className="h-4 w-4" />
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -78,20 +82,24 @@ const HeroSection = () => {
                   <p className="text-xs text-muted-foreground mt-3">
                     <span className="font-semibold text-foreground">Best for:</span> Group lessons, one-off sessions, getting the best price
                   </p>
-                  <button className="mt-4 w-full border border-primary text-primary py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-secondary transition-colors">
+                  <Link to="/post-lesson" className="mt-4 w-full border border-primary text-primary py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-secondary transition-colors">
                     Post Your Lesson <ArrowRight className="h-4 w-4" />
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
 
-            <button className="w-full bg-primary text-primary-foreground py-3.5 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity">
-              Create Account
-            </button>
-            <p className="text-center text-sm text-hero-foreground/50">
-              Already have an account?{" "}
-              <a href="#" className="text-primary hover:underline font-medium">Sign in</a>
-            </p>
+            {!user && (
+              <>
+                <Link to="/register" className="block w-full bg-primary text-primary-foreground py-3.5 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity text-center">
+                  Create Account
+                </Link>
+                <p className="text-center text-sm text-hero-foreground/50">
+                  Already have an account?{" "}
+                  <Link to="/login" className="text-primary hover:underline font-medium">Sign in</Link>
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
