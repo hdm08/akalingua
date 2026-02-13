@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/integrations/firebase/client";
 import { Globe, Mail, Lock, ArrowRight, User } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,46 +16,57 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
     }
+
     setLoading(true);
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: fullName },
-      },
-    });
+    try {
+      // 1. Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    if (authError) {
-      toast.error(authError.message);
-      setLoading(false);
-      return;
-    }
+      // 2. Update display name (optional but nice)
+      await updateProfile(user, { displayName: fullName });
 
-    if (authData.user) {
-      // Insert role
-      await supabase.from("user_roles" as any).insert({
-        user_id: authData.user.id,
-        role: role,
-      } as any);
+      // 3. Store role in Firestore
+      await setDoc(doc(db, "user_roles", user.uid), {
+        role,
+        createdAt: new Date().toISOString(),
+      });
 
-      // If teacher, create teacher profile
+      // 4. If teacher → create teacher profile document
       if (role === "teacher") {
-        await supabase.from("teacher_profiles" as any).insert({
-          user_id: authData.user.id,
+        await setDoc(doc(db, "teacher_profiles", user.uid), {
+          user_id: user.uid,
           display_name: fullName,
-        } as any);
+          createdAt: new Date().toISOString(),
+          // You can add more fields later: bio, subjects, etc.
+        });
       }
-    }
 
-    toast.success("Account created! Please check your email to verify your account.");
-    navigate("/login");
-    setLoading(false);
+      toast.success("Account created successfully!");
+
+      // Redirect based on chosen role (since we just set it)
+      if (role === "teacher") {
+        navigate("/teacher/dashboard");
+      } else {
+        navigate("/");
+      }
+    } catch (error: any) {
+      const message =
+        error.code === "auth/email-already-in-use"
+          ? "This email is already registered."
+          : error.code === "auth/weak-password"
+          ? "Password is too weak."
+          : error.message || "Registration failed. Please try again.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -71,22 +84,48 @@ const Register = () => {
 
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md bg-background rounded-2xl shadow-sm border border-border p-8">
-          <h1 className="font-display text-2xl font-bold text-center text-foreground">Create your account</h1>
+          <h1 className="font-display text-2xl font-bold text-center text-foreground">
+            Create your account
+          </h1>
           <p className="text-center text-sm text-muted-foreground mt-2">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+            <Link to="/login" className="text-primary font-medium hover:underline">
+              Sign in
+            </Link>
           </p>
 
           <form onSubmit={handleRegister} className="mt-8 space-y-5">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">I am a...</label>
               <div className="flex gap-4">
-                <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${role === "student" ? "border-primary bg-secondary text-primary" : "border-input text-muted-foreground"}`}>
-                  <input type="radio" name="role" value="student" checked={role === "student"} onChange={() => setRole("student")} className="sr-only" />
+                <label
+                  className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    role === "student" ? "border-primary bg-secondary text-primary" : "border-input text-muted-foreground"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value="student"
+                    checked={role === "student"}
+                    onChange={() => setRole("student")}
+                    className="sr-only"
+                  />
                   Student
                 </label>
-                <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${role === "teacher" ? "border-primary bg-secondary text-primary" : "border-input text-muted-foreground"}`}>
-                  <input type="radio" name="role" value="teacher" checked={role === "teacher"} onChange={() => setRole("teacher")} className="sr-only" />
+                <label
+                  className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    role === "teacher" ? "border-primary bg-secondary text-primary" : "border-input text-muted-foreground"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value="teacher"
+                    checked={role === "teacher"}
+                    onChange={() => setRole("teacher")}
+                    className="sr-only"
+                  />
                   Teacher
                 </label>
               </div>
@@ -144,7 +183,8 @@ const Register = () => {
               disabled={loading}
               className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {loading ? "Creating account..." : "Create account"} <ArrowRight className="h-4 w-4" />
+              {loading ? "Creating account..." : "Create account"}{" "}
+              <ArrowRight className="h-4 w-4" />
             </button>
           </form>
         </div>

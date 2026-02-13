@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/integrations/firebase/client";
 import { Globe, Mail, Lock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,32 +16,43 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      // 1. Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
-    }
+      // 2. Fetch role from Firestore
+      const roleDocRef = doc(db, "user_roles", user.uid);
+      const roleSnap = await getDoc(roleDocRef);
 
-    // Fetch role to determine redirect
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase
-        .from("user_roles" as any)
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      let role: "student" | "teacher" = "student"; // default fallback
 
-      const role = (data as any)?.role;
+      if (roleSnap.exists()) {
+        const data = roleSnap.data();
+        role = data?.role === "teacher" ? "teacher" : "student";
+      }
+
+      toast.success("Logged in successfully!");
+
+      // 3. Redirect based on role
       if (role === "teacher") {
         navigate("/teacher/dashboard");
       } else {
         navigate("/");
       }
+    } catch (error: any) {
+      const message =
+        error.code === "auth/wrong-password"
+          ? "Incorrect password"
+          : error.code === "auth/user-not-found"
+          ? "No account found with this email"
+          : error.code === "auth/invalid-email"
+          ? "Invalid email format"
+          : error.message || "Login failed. Please try again.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -57,10 +70,14 @@ const Login = () => {
 
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md bg-background rounded-2xl shadow-sm border border-border p-8">
-          <h1 className="font-display text-2xl font-bold text-center text-foreground">Welcome back</h1>
+          <h1 className="font-display text-2xl font-bold text-center text-foreground">
+            Welcome back
+          </h1>
           <p className="text-center text-sm text-muted-foreground mt-2">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">Sign up</Link>
+            <Link to="/register" className="text-primary font-medium hover:underline">
+              Sign up
+            </Link>
           </p>
 
           <form onSubmit={handleLogin} className="mt-8 space-y-5">
@@ -99,7 +116,8 @@ const Login = () => {
               disabled={loading}
               className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"} <ArrowRight className="h-4 w-4" />
+              {loading ? "Signing in..." : "Sign in"}{" "}
+              <ArrowRight className="h-4 w-4" />
             </button>
           </form>
         </div>

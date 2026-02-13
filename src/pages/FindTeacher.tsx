@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/firebase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Search, Star, CheckCircle, ArrowRight, Filter, Globe, MapPin } from "lucide-react";

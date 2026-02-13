@@ -1,12 +1,23 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+// src/context/AuthContext.tsx  (or wherever you keep it)
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import {
+  onAuthStateChanged,
+  User as FirebaseUser,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/integrations/firebase/client";
 
 type UserRole = "student" | "teacher" | null;
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: FirebaseUser | null;
   role: UserRole;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -14,65 +25,84 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   role: null,
   loading: true,
   signOut: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles" as any)
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole((data as any)?.role || null);
+    try {
+      const roleDocRef = doc(db, "user_roles", userId);
+      const roleSnap = await getDoc(roleDocRef);
+
+      if (roleSnap.exists()) {
+        const data = roleSnap.data();
+        const fetchedRole = data?.role;
+        setRole(
+          fetchedRole === "teacher" || fetchedRole === "student"
+            ? fetchedRole
+            : null
+        );
+      } else {
+        setRole(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user role:", err);
+      setRole(null);
+    }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchRole(session.user.id);
-        } else {
-          setRole(null);
-        }
-        setLoading(false);
-      }
-    );
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchRole(session.user.id);
+      if (currentUser) {
+        await fetchRole(currentUser.uid);
+      } else {
+        setRole(null);
       }
+
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setRole(null);
+  const handleSignOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      setUser(null);
+      setRole(null);
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        role,
+        loading,
+        signOut: handleSignOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

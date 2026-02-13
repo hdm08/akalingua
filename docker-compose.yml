@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aka-lingua-frontend
+    ports:
+      - "3000:3000"           # ← access at http://localhost:3000
+    restart: unless-stopped
+    environment:
+      # Add your Vite env vars here if needed (they are baked during build)
+      - NODE_ENV=production
+      # - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+      # - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+      # etc...
